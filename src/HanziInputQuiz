@@ -1,0 +1,114 @@
+LIBRARY "/bmaps/dos.library"
+DECLARE FUNCTION LoadSeg& LIBRARY
+DECLARE FUNCTION xOpen& LIBRARY
+LoadAssem&=(LoadSeg&(SADD("/asm-libs/LoadAssem"+CHR$(0)))+1)*4
+DisplayIFF&=0
+Lesen&=0
+ReserveMem&=0
+DropMem&=0
+CALL LoadAssem&(VARPTR(DisplayIFF&),17)
+CALL LoadAssem&(VARPTR(Lesen&),13)
+CALL LoadAssem&(VARPTR(ReserveMem&),11)
+CALL LoadAssem&(VARPTR(DropMem&),12)
+DIM alt(25),tian&(25,19),gao&(25,19),dirpoint(400,3)
+SCREEN 2,320,256,1,1
+WINDOW 2,,,0,2
+PALETTE 0,0,0,0
+PALETTE 1,0,.7,0
+LOCATE 12,10
+PRINT "For CangJie press C!"
+LOCATE 10,8
+PRINT "For WuBiZiXing press W!"
+mode$=""
+while mode$<>"w" and mode$<>"c"
+mode$=INKEY$
+wend
+if mode$="w" then mode$="wu-bi-zi-xing"
+if mode$="c" then mode$="cang-jie"
+CLS
+LOCATE 10,10
+PRINT "Lookin for Components..."
+io=0
+FOR u=1 TO 25
+ zimu$=CHR$(64+u)
+ FOR uu=1 TO 19
+  uu$=""
+  IF uu<10 THEN uu$=CHR$(48+uu)
+  IF uu>9 THEN uu$="1"+CHR$(38+uu)
+  hu$="/data/"+mode$+"/"+zimu$+uu$
+  hu&=SADD(hu$+CHR$(0))
+  h&=xOpen&(hu&,1005)
+  IF h&<>0 THEN
+   OPEN hu$ FOR INPUT AS 1
+    g&=LOF(1)
+   CLOSE 1
+   gao&(u,uu)=g&
+   k&=0
+   CALL ReserveMem&(VARPTR(k&),1,g&)
+   tian&(u,uu)=k&
+   CALL Lesen&(hu&,k&,g&)
+   io=io+1:LOCATE 11,20:PRINT io
+   dirpoint(io,1)=u:dirpoint(io,2)=uu
+  END IF
+  IF h&=0 THEN alt(u)=uu-1:uu=19
+ NEXT uu
+NEXT u
+CLS
+sp&=PEEKL(WINDOW(7)+46)
+RANDOMIZE TIMER
+jian$=""
+dui=0
+ui=0
+quandui=0
+quanwen=0
+LOCATE 2,1
+PRINT "Streak"
+LOCATE 2,21
+PRINT "Loop"
+WHILE jian$<>CHR$(27)
+ IF ui/io>.9 THEN LINE (0,40)-(320,250),0,bf
+ LOCATE 5,20
+ PRINT " "
+ LOCATE 1,18
+ PRINT INT(ui/io*10000)/100;"%     "
+ LOCATE 3,1:PRINT "   "
+ IF ui=0 AND io<=dui THEN LOCATE 3,1:PRINT "WOW"
+searchin:
+ sel=INT(RND*io)+1
+ IF dirpoint(sel,3)=1 THEN searchin
+ dirpoint(sel,3)=1:ui=ui+1
+ j=dirpoint(sel,2)
+ i=dirpoint(sel,1)
+ IF ui=io THEN
+  FOR u=1 TO io
+   dirpoint(u,3)=0
+  NEXT u
+  ui=1
+ END IF
+ CALL DisplayIFF&(sp&,tian&(i,j),2240,0)
+ WHILE jian$="":jian$=INKEY$:WEND
+ IF jian$="z" THEN jian$="y"
+ IF jian$<>CHR$(27) THEN
+  dui=dui+1:quandui=quandui+1:quanwen=quanwen+1
+  IF ASC(jian$)-96<>i THEN
+   LOCATE 5,20
+   PRINT CHR$(i+64)
+   WHILE INKEY$<>CHR$(13):WEND
+   dui=0
+   quandui=quandui-1
+   dirpoint(sel,3)=0:ui=ui-1
+  END IF
+  jian$="":LOCATE 1,1:PRINT dui"   "
+  LOCATE 1,30:PRINT quandui"/"quanwen
+  LOCATE 2,31:PRINT INT(10000*quandui/quanwen)/100;"%    "
+ END IF
+WEND
+FOR u=1 TO 25
+ zimu$=CHR$(64+u)
+ FOR uu=1 TO alt(u)
+  hu$="/data/"+mode$+"/"+zimu$+CHR$(48+uu)
+  hu&=SADD(hu$+CHR$(0))
+  CALL DropMem&(tian&(u,uu),gao&(u,uu))
+ NEXT uu
+NEXT u
+SYSTEM

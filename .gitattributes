@@ -1,0 +1,3 @@
+asm-libs linguist-vendored
+src/* linguist-language=BASIC
+src-tokenized/* linguist-generated
